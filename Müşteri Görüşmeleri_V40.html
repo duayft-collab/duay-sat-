@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V2.0 Profesyonel Müşteri Analiz Paneli</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .sidebar-link.active {
+            background-color: #eff6ff;
+            color: #2563eb;
+            border-right: 4px solid #2563eb;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 0.5rem;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 1.25rem;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 0.75rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .data-toolbar {
+            background: #1e293b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .note-section {
+            background-color: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .question-box {
+            background-color: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            #sidebar { width: 4rem; }
+            #sidebar span { display: none; }
+            #main-content { margin-left: 4rem; }
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            #main-content { margin-left: 0 !important; padding: 0 !important; }
+            .page { display: block !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <aside id="sidebar" class="fixed left-0 top-0 h-screen w-72 bg-white border-r border-slate-200 z-50 overflow-y-auto no-print">
+        <div class="p-6">
+            <h1 class="text-xl font-bold text-blue-600 flex items-center">
+                <i class="fas fa-chart-line mr-2"></i> CRM Analiz Pro
+            </h1>
+        </div>
+        <nav class="mt-4 px-3 space-y-1">
+            <a href="#" onclick="showPage('musteri-bilgileri')" class="sidebar-link active flex items-center p-3 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" data-page="musteri-bilgileri">
+                <i class="fas fa-building w-6"></i>
+                <span class="ml-3 font-medium">Müşteri Bilgileri</span>
+            </a>
+            <a href="#" onclick="showPage('sirket-sahibi')" class="sidebar-link flex items-center p-3 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" data-page="sirket-sahibi">
+                <i class="fas fa-user-tie w-6"></i>
+                <span class="ml-3 font-medium">Şirket Sahibi</span>
+            </a>
+            <a href="#" onclick="showPage('sirket-sektor')" class="sidebar-link flex items-center p-3 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" data-page="sirket-sektor">
+                <i class="fas fa-industry w-6"></i>
+                <span class="ml-3 font-medium">Şirket ve Sektör</span>
+            </a>
+            <a href="#" onclick="showPage('satinalma')" class="sidebar-link flex items-center p-3 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" data-page="satinalma">
+                <i class="fas fa-shopping-cart w-6"></i>
+                <span class="ml-3 font-medium">Satın Alma Uzmanlığı</span>
+            </a>
+            <a href="#" onclick="showPage('notlar')" class="sidebar-link flex items-center p-3 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" data-page="notlar">
+                <i class="fas fa-clipboard-list w-6"></i>
+                <span class="ml-3 font-medium">Görüşme Notları</span>
+            </a>
+            <a href="#" onclick="showPage('analiz')" class="sidebar-link flex items-center p-3 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" data-page="analiz">
+                <i class="fas fa-magnifying-glass-chart w-6"></i>
+                <span class="ml-3 font-medium">Müşteri Analizi</span>
+            </a>
+            <a href="#" onclick="showPage('takip')" class="sidebar-link flex items-center p-3 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" data-page="takip">
+                <i class="fas fa-calendar-check w-6"></i>
+                <span class="ml-3 font-medium">Analiz & Takip Planı</span>
+            </a>
+            <a href="#" onclick="showPage('referans')" class="sidebar-link flex items-center p-3 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" data-page="referans">
+                <i class="fas fa-thumbs-up w-6"></i>
+                <span class="ml-3 font-medium">Öneriler & Referanslar</span>
+            </a>
+            <a href="#" onclick="showPage('yapilacaklar')" class="sidebar-link flex items-center p-3 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" data-page="yapilacaklar">
+                <i class="fas fa-tasks w-6"></i>
+                <span class="ml-3 font-medium">Takip Listesi</span>
+            </a>
+            <a href="#" onclick="showPage('satis-degerlendirme')" class="sidebar-link flex items-center p-3 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" data-page="satis-degerlendirme">
+                <i class="fas fa-history w-6"></i>
+                <span class="ml-3 font-medium">Satış Değerlendirmeleri</span>
+            </a>
+            <div class="border-t border-slate-100 my-2"></div>
+            <a href="#" onclick="showPage('soru-bankasi')" class="sidebar-link flex items-center p-3 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors" data-page="soru-bankasi">
+                <i class="fas fa-lightbulb w-6"></i>
+                <span class="ml-3 font-bold uppercase text-xs tracking-wider">Soru Bankası & Rehber</span>
+            </a>
+        </nav>
+        
+        <div class="absolute bottom-0 w-full p-6 bg-white border-t border-slate-100">
+            <button onclick="saveAllData()" class="w-full btn-primary flex items-center justify-center">
+                <i class="fas fa-save mr-2"></i> Tümünü Kaydet
+            </button>
+        </div>
+    </aside>
+
+    <main id="main-content" class="ml-72 p-8 min-h-screen">
+        
+        <header class="mb-8 no-print">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 id="current-page-title" class="text-2xl font-bold text-slate-800">Müşteri Bilgileri</h2>
+                    <p class="text-slate-500">Profesyonel CRM yönetim ve raporlama paneli.</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="exportToPDF()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center">
+                        <i class="fas fa-file-pdf mr-2"></i> PDF Al
+                    </button>
+                    <button onclick="exportToExcel()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center">
+                        <i class="fas fa-file-excel mr-2"></i> Excel Al
+                    </button>
+                </div>
+            </div>
+
+            <div class="data-toolbar shadow-lg">
+                <span class="text-sm font-bold border-r border-slate-600 pr-4 mr-2">VERİ YÖNETİMİ</span>
+                <button onclick="exportJSON()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded flex items-center">
+                    <i class="fas fa-download mr-2"></i> Veriyi Dışarı Aktar (.json)
+                </button>
+                <button onclick="document.getElementById('importFile').click()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded flex items-center">
+                    <i class="fas fa-upload mr-2"></i> Veri İçeri Aktar
+                </button>
+                <input type="file" id="importFile" class="hidden" accept=".json" onchange="importJSON(this)">
+                <div class="flex-grow"></div>
+                <button onclick="resetData()" class="text-xs bg-red-900/50 hover:bg-red-800 px-3 py-2 rounded flex items-center text-red-200">
+                    <i class="fas fa-trash-alt mr-2"></i> Sistemi Sıfırla
+                </button>
+            </div>
+        </header>
+
+        <div id="pages-container">
+            
+            <section id="musteri-bilgileri" class="page active">
+                <div class="form-card">
+                    <h3 class="section-title">A. Firma Bilgileri</h3>
+                    <div class="grid-2">
+                        <div>
+                            <label>Firma Adı</label>
+                            <input type="text" id="firma_adi" placeholder="Firma adını yazınız...">
+                        </div>
+                        <div>
+                            <label>Görüşme Tarihi & Yeri</label>
+                            <input type="text" id="gorusme_tarih_yer" placeholder="Örn: 12.10.2023 - İstanbul">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div>
+                            <label>Yetkili Kişi / Unvan / Memleket</label>
+                            <input type="text" id="yetkili_kisi" placeholder="İsim - Unvan - Şehir">
+                        </div>
+                        <div>
+                            <label>Görüşme Şekli</label>
+                            <select id="gorusme_sekli">
+                                <option value="Yüz yüze">Yüz yüze</option>
+                                <option value="Online">Online</option>
+                                <option value="Telefon">Telefon</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label>Katılımcılar</label>
+                    <textarea id="katilimcilar" rows="2" placeholder="Katılan diğer kişiler..."></textarea>
+                    
+                    <div class="note-section">
+                        <label class="text-amber-800"><i class="fas fa-sticky-note mr-2"></i>Müşteri Bilgileri - Özel Notlar</label>
+                        <textarea id="not_musteri_bilgileri" rows="2" class="mb-0 border-amber-200 focus:border-amber-400" placeholder="Bu bölümle ilgili ek notlarınızı buraya yazın..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <h3 class="section-title">B. Şirketin Vizyonu</h3>
+                    <label>Potansiyel ve Gelecek Öngörüsü</label>
+                    <textarea id="vizyon_potansiyel" rows="2" placeholder="Nasıl bir potansiyel görüyor, ne kadar büyüyebilir?"></textarea>
+                    
+                    <label>Kişinin Vizyonu ve Fabrika Uyumu</label>
+                    <textarea id="kisi_vizyonu" rows="2" placeholder="Kişinin vizyonu nedir? Fabrika ile uyuyor mu?"></textarea>
+                    
+                    <div class="grid-2">
+                        <div>
+                            <label>Plan, Misyon ve Prensipler</label>
+                            <textarea id="plan_misyon" rows="3"></textarea>
+                        </div>
+                        <div>
+                            <label>Markalaşma Hedefi</label>
+                            <textarea id="markalasma_hedefi" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sirket-sahibi" class="page">
+                <div class="form-card">
+                    <h3 class="section-title">Şirket Sahibi Profili</h3>
+                    <div class="grid-2">
+                        <div>
+                            <label>Şirket Sahibi / Ortaklık Yüzde / Memleket</label>
+                            <input type="text" id="sahibi_detay" placeholder="İsim - %50 - Şehir">
+                        </div>
+                        <div>
+                            <label>Faaliyet Yılı</label>
+                            <input type="text" id="faaliyet_yili" placeholder="Firma kaç yıldır faal?">
+                        </div>
+                    </div>
+                    <label>Diğer Şirketleri ve İşleri</label>
+                    <textarea id="diger_isler" rows="4" placeholder="Başka kaç şirketi, ne gibi işleri var?"></textarea>
+
+                    <div class="note-section">
+                        <label class="text-amber-800"><i class="fas fa-sticky-note mr-2"></i>Şirket Sahibi - Özel Notlar</label>
+                        <textarea id="not_sirket_sahibi" rows="2" class="mb-0 border-amber-200 focus:border-amber-400" placeholder="Sahip profili ile ilgili ek notlar..."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sirket-sektor" class="page">
+                <div class="form-card">
+                    <h3 class="section-title">Şirket Durumu</h3>
+                    <div class="grid-2">
+                        <div>
+                            <label>Şirket Büyüme Trendi</label>
+                            <select id="buyume_durumu">
+                                <option value="Büyüyor">Büyüyor</option>
+                                <option value="Stabil">Stabil</option>
+                                <option value="Küçülüyor">Küçülüyor</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Yıllık Büyüme/Küçülme Yüzdesi</label>
+                            <input type="text" id="buyume_yuzde" placeholder="Örn: %15">
+                        </div>
+                    </div>
+                    <label>En Son Yapılan Yatırımlar</label>
+                    <input type="text" id="son_yatirim" placeholder="En son ne yatırım yapıldı?">
+                    
+                    <label>Yakın Zamanda Uygulanacak Projeler</label>
+                    <textarea id="yakin_projeler" rows="2"></textarea>
+                    
+                    <label>Büyüme Hedefleri ve Engeller</label>
+                    <textarea id="buyume_hedefler_engeller" rows="3" placeholder="Hedefler neler? En büyük engeller hangileri?"></textarea>
+
+                    <div class="note-section">
+                        <label class="text-amber-800"><i class="fas fa-sticky-note mr-2"></i>Şirket/Sektör - Özel Notlar</label>
+                        <textarea id="not_sirket_sektor" rows="2" class="mb-0 border-amber-200 focus:border-amber-400" placeholder="Sektörel gözlemleriniz..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <h3 class="section-title">Sektör Analizi</h3>
+                    <label>Sektördeki İlk 5 Firma</label>
+                    <textarea id="sektor_top5" rows="2" placeholder="Sektörün devleri kimler?"></textarea>
+                    
+                    <label>Son Yılların Yükselen ve Düşen Firmaları</label>
+                    <textarea id="sektor_trendleri" rows="3" placeholder="Kimler yükselişte, kimler düşüşte?"></textarea>
+                </div>
+            </section>
+
+            <section id="satinalma" class="page">
+                <div class="form-card">
+                    <h3 class="section-title">Satın Alma Karar Mekanizması</h3>
+                    <div class="grid-2">
+                        <div>
+                            <label>Gerçek Karar Alıcı Kim?</label>
+                            <input type="text" id="karar_alici" placeholder="İsim ve Unvan">
+                        </div>
+                        <div>
+                            <label>İç ve Dış Referanslar (Danışılanlar)</label>
+                            <input type="text" id="referanslar" placeholder="Kimlere danışıyorlar?">
+                        </div>
+                    </div>
+                    <label>Mevcut Tedarikçiler</label>
+                    <textarea id="mevcut_tedarikciler" rows="3"></textarea>
+                    
+                    <label>Satın Alma Ürün Kriterleri</label>
+                    <textarea id="satinalma_kriterleri" rows="3" placeholder="Fiyat, kalite, hız vb. öncelikler"></textarea>
+
+                    <div class="note-section">
+                        <label class="text-amber-800"><i class="fas fa-sticky-note mr-2"></i>Satın Alma - Özel Notlar</label>
+                        <textarea id="not_satinalma" rows="2" class="mb-0 border-amber-200 focus:border-amber-400" placeholder="Satın alma süreçlerine dair kritik notlar..."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <section id="notlar" class="page">
+                <div class="form-card">
+                    <h3 class="section-title">Görüşme Detayları</h3>
+                    <label>Gözlemler, Sözler ve Anahtar Cümleler</label>
+                    <textarea id="gorusme_gozlemler" rows="4" placeholder="Satır araları, önemli notlar..."></textarea>
+                    
+                    <div class="grid-2">
+                        <div>
+                            <label>Aklıma Gelen Potansiyeller</label>
+                            <textarea id="akla_gelen_potansiyel" rows="3"></textarea>
+                        </div>
+                        <div>
+                            <label>Yeni Ürün Önerisi</label>
+                            <textarea id="yeni_urun_oneri" rows="3"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div>
+                            <label>Tasarım / Alarm Güncelleme</label>
+                            <textarea id="tasarim_guncelleme" rows="3"></textarea>
+                        </div>
+                        <div>
+                            <label>İşbirliği Fırsatları</label>
+                            <textarea id="isbirligi_firsati" rows="3"></textarea>
+                        </div>
+                    </div>
+                    
+                    <label>Müşteri Önerisi</label>
+                    <textarea id="musteri_onerisi_ozel" rows="2"></textarea>
+                </div>
+            </section>
+
+            <section id="analiz" class="page">
+                <div class="form-card">
+                    <h3 class="section-title">Gizli Potansiyelleri Ortaya Çıkar</h3>
+                    
+                    <div class="p-4 bg-blue-50 border-l-4 border-blue-500 mb-6">
+                        <p class="text-sm text-blue-700 font-medium">Amaç: Müşterinin mevcut ve gelecek potansiyellerini belirleyip fırsatlara odaklanmak.</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="p-4 border border-slate-100 rounded-lg">
+                            <h4 class="font-bold text-slate-700 mb-3"><i class="fas fa-check-circle text-green-500 mr-2"></i>Bitmiş Projeler</h4>
+                            <textarea id="bitmis_projeler" rows="2" placeholder="Neleri farklı yapardınız?"></textarea>
+                        </div>
+                        
+                        <div class="p-4 border border-slate-100 rounded-lg">
+                            <h4 class="font-bold text-slate-700 mb-3"><i class="fas fa-play-circle text-blue-500 mr-2"></i>Devam Eden Projeler</h4>
+                            <textarea id="devam_eden_projeler" rows="2" placeholder="İhtiyaç duyulan ürünler..."></textarea>
+                        </div>
+                        
+                        <div class="p-4 border border-slate-100 rounded-lg">
+                            <h4 class="font-bold text-slate-700 mb-3"><i class="fas fa-forward text-purple-500 mr-2"></i>Başlayacak Projeler</h4>
+                            <textarea id="baslayacak_projeler" rows="2" placeholder="Ne zaman başlıyor? İhtiyaçlar neler?"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <h4 class="font-bold text-slate-700 mb-4">Piyasa Konumu</h4>
+                        <div class="grid-2">
+                            <div>
+                                <label>Piyasadaki İlk 3 Firma Arasında mı?</label>
+                                <select id="piyasa_ilk3">
+                                    <option value="Evet">Evet</option>
+                                    <option value="Hayır">Hayır</option>
+                                    <option value="Hedefliyor">Hedefliyor</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Liderlik Planı</label>
+                                <input type="text" id="liderlik_plani" placeholder="Liderlik için plan nedir?">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 bg-slate-50 p-6 rounded-xl">
+                        <h4 class="font-bold text-slate-700 mb-4">Müşteri Ne İstiyor? & Korkuları</h4>
+                        <div class="grid-2">
+                            <div>
+                                <label>Ürün/Çözüm Bazlı İhtiyaçlar</label>
+                                <textarea id="musteri_istek_urun" rows="3"></textarea>
+                            </div>
+                            <div>
+                                <label>Süreç veya Hizmet Beklentileri</label>
+                                <textarea id="musteri_istek_hizmet" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <label>Korkuları / Çekinceleri (Geçmiş Kötü Tecrübeler)</label>
+                        <textarea id="korkular_cekinceler" rows="3" placeholder="Kalite, zaman, para dengesi ve geçmiş hatalar..."></textarea>
+                    </div>
+
+                    <div class="note-section">
+                        <label class="text-amber-800"><i class="fas fa-sticky-note mr-2"></i>Potansiyel Analizi - Özel Notlar</label>
+                        <textarea id="not_analiz" rows="2" class="mb-0 border-amber-200 focus:border-amber-400" placeholder="Ekstra analiz bulguları..."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <section id="takip" class="page">
+                <div class="form-card">
+                    <h3 class="section-title">Stratejik Planlama</h3>
+                    <div class="grid-2">
+                        <div>
+                            <label class="text-red-600">Performansı Düşürenler</label>
+                            <textarea id="performans_dusuren" rows="3"></textarea>
+                        </div>
+                        <div>
+                            <label class="text-blue-600">Geliştirme Alanları</label>
+                            <textarea id="gelistirme_alanlari" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="grid-2 mt-4">
+                        <div>
+                            <label class="text-green-600">Performans Artırıcılar</label>
+                            <textarea id="performans_artirici" rows="3"></textarea>
+                        </div>
+                        <div>
+                            <label class="text-amber-600">Satış Desteği</label>
+                            <textarea id="satis_destegi" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <label class="mt-4">Görev / Eylem</label>
+                    <textarea id="gorev_eylem" rows="4" placeholder="Hangi adımlar atılacak?"></textarea>
+
+                    <div class="note-section">
+                        <label class="text-amber-800"><i class="fas fa-sticky-note mr-2"></i>Takip Planı - Özel Notlar</label>
+                        <textarea id="not_takip" rows="2" class="mb-0 border-amber-200 focus:border-amber-400" placeholder="Stratejik süreç notları..."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <section id="referans" class="page">
+                <div class="form-card">
+                    <h3 class="section-title">Müşteriden Katkı Alma</h3>
+                    <label>Katalog Önerileri</label>
+                    <textarea id="katalog_oneri" rows="3" placeholder="Neler eklenmeli/çıkarılmalı? Hangi bilgiler süreci hızlandırır?"></textarea>
+                    
+                    <label>Ürün Geliştirme Önerileri</label>
+                    <textarea id="urun_gelistirme_oneri" rows="3" placeholder="Kullanılan ürünlerle ilgili şikayet ve geliştirme önerileri..."></textarea>
+                    
+                    <label>Referans / Önerilen Katalog Örneği</label>
+                    <input type="text" id="katalog_ornegi" placeholder="Daha önce beğendiği bir katalog var mı?">
+
+                    <div class="note-section">
+                        <label class="text-amber-800"><i class="fas fa-sticky-note mr-2"></i>Referanslar - Özel Notlar</label>
+                        <textarea id="not_referans" rows="2" class="mb-0 border-amber-200 focus:border-amber-400" placeholder="Müşterinin verdiği isimler veya katalog fikirleri üzerine notlar..."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <section id="yapilacaklar" class="page">
+                <div class="form-card">
+                    <h3 class="section-title">Takip Listesi</h3>
+                    <div id="todo-list" class="space-y-4">
+                        </div>
+                    <button onclick="addTodoRow()" class="mt-4 px-4 py-2 bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition-colors no-print">
+                        <i class="fas fa-plus mr-2"></i> Yeni Satır Ekle
+                    </button>
+                </div>
+            </section>
+
+            <section id="satis-degerlendirme" class="page">
+                <div class="form-card">
+                    <h3 class="section-title">Daha Önce Satılan Ürün Değerlendirmeleri</h3>
+                    <div id="sales-eval-list" class="space-y-4">
+                        </div>
+                    <button onclick="addSalesEvalRow()" class="mt-4 px-4 py-2 bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition-colors no-print">
+                        <i class="fas fa-plus mr-2"></i> Yeni Değerlendirme Ekle
+                    </button>
+                </div>
+            </section>
+
+            <!-- YENİ BÖLÜM: SORU BANKASI -->
+            <section id="soru-bankasi" class="page">
+                <div class="form-card">
+                    <h3 class="section-title text-blue-600"><i class="fas fa-university mr-3"></i>Satış Soru Bankası & Rehber</h3>
+                    <p class="text-slate-500 mb-6">Müşteriyi konuşturmak, potansiyeli ortaya çıkarmak ve yeni iş fırsatları yaratmak için hazırlanan stratejik soru setleri.</p>
+                    
+                    <div class="space-y-8">
+                        <div>
+                            <h4 class="font-bold text-slate-800 mb-4 border-b pb-2"><i class="fas fa-bullseye text-red-500 mr-2"></i>1. Potansiyeli Ortaya Çıkaran Sorular</h4>
+                            <div class="question-box">
+                                <p class="text-sm font-semibold">"Önümüzdeki 2-3 yıl için üretim kapasitenizde ne kadarlık bir artış öngörüyorsunuz?"</p>
+                            </div>
+                            <div class="question-box">
+                                <p class="text-sm font-semibold">"Şu anki makine parkurunuz planladığınız büyüme için yeterli mi, yoksa yeni yatırımlar gündemde mi?"</p>
+                            </div>
+                            <div class="question-box">
+                                <p class="text-sm font-semibold">"Hangi ürün gruplarınızda talep artışı bekliyorsunuz?"</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold text-slate-800 mb-4 border-b pb-2"><i class="fas fa-search text-amber-500 mr-2"></i>2. Gözlem ve Tespit Soruları (Saha Analizi)</h4>
+                            <div class="question-box">
+                                <p class="text-sm font-semibold">"Fabrikanızda iş akışını engelleyen veya yavaşlatan en büyük dar boğaz neresi?"</p>
+                            </div>
+                            <div class="question-box">
+                                <p class="text-sm font-semibold">"Mevcut ürünlerinizde en sık karşılaştığınız fire veya kalite hatası hangi aşamada oluyor?"</p>
+                            </div>
+                            <div class="question-box">
+                                <p class="text-sm font-semibold">"Sevkiyat biriminde operasyonun en çok takıldığı nokta nedir?"</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold text-slate-800 mb-4 border-b pb-2"><i class="fas fa-comments text-green-500 mr-2"></i>3. Konuşturarak İş Çıkaran Sorular</h4>
+                            <div class="question-box">
+                                <p class="text-sm font-semibold">"Mevcut tedarikçinizde 'keşke şunu da yapsalar' dediğiniz bir eksiklik var mı?"</p>
+                            </div>
+                            <div class="question-box">
+                                <p class="text-sm font-semibold">"Tedarik zincirinizde sizi en çok endişelendiren risk nedir?"</p>
+                            </div>
+                            <div class="question-box">
+                                <p class="text-sm font-semibold">"Geçmişte yaşadığınız en kötü satın alma deneyiminden ne öğrendiniz?" (Bu soru müşterinin hassasiyetini belirler).</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold text-slate-800 mb-4 border-b pb-2"><i class="fas fa-handshake text-blue-500 mr-2"></i>4. Stratejik İpucu Rehberi</h4>
+                            <ul class="list-disc list-inside text-sm text-slate-600 space-y-2">
+                                <li><strong>Aktif Dinleme:</strong> Müşteri konuşurken 3 saniye bekleyin, genellikle en önemli bilgiyi sessizlikten sonra verir.</li>
+                                <li><strong>Açık Uçlu Başla:</strong> Sorularınıza asla "Evet/Hayır" ile cevap verilebilecek şekilde başlamayın. "Nasıl...", "Neden...", "Anlatır mısınız..." kullanın.</li>
+                                <li><strong>Onay Al:</strong> "Anladığım kadarıyla sizin için en kritik konu 'X', doğru mu?" diyerek konuyu netleştirin.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // Sayfa Değiştirme Fonksiyonu
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.classList.remove('active');
+                if(link.getAttribute('data-page') === pageId) link.classList.add('active');
+            });
+
+            const titles = {
+                'musteri-bilgileri': 'Müşteri Bilgileri',
+                'sirket-sahibi': 'Şirket Sahibi',
+                'sirket-sektor': 'Şirket ve Sektör',
+                'satinalma': 'Satın Alma Uzmanlığı',
+                'notlar': 'Görüşme Notları',
+                'analiz': 'Müşteri Analizi',
+                'takip': 'Analiz Sonucu & Takip Planı',
+                'referans': 'Öneriler ve Referanslar',
+                'yapilacaklar': 'Yapılacaklar - Takip Listesi',
+                'satis-degerlendirme': 'Satılan Ürün Değerlendirmeleri',
+                'soru-bankasi': 'Soru Bankası & Rehber'
+            };
+            document.getElementById('current-page-title').innerText = titles[pageId];
+        }
+
+        // Dinamik Satır Fonksiyonları
+        function addTodoRow(tarih = '', oncelik = 'Normal', not = '') {
+            const container = document.getElementById('todo-list');
+            const div = document.createElement('div');
+            div.className = 'grid grid-cols-12 gap-2 border-b pb-4 items-end';
+            div.innerHTML = `
+                <div class="col-span-3"><label class="text-xs">Tarih</label><input type="text" class="todo-date mb-0" value="${tarih}"></div>
+                <div class="col-span-2"><label class="text-xs">Öncelik</label><select class="todo-priority mb-0">
+                    <option ${oncelik==='Düşük'?'selected':''}>Düşük</option>
+                    <option ${oncelik==='Normal'?'selected':''}>Normal</option>
+                    <option ${oncelik==='Yüksek'?'selected':''}>Yüksek</option>
+                </select></div>
+                <div class="col-span-6"><label class="text-xs">Not / Görev</label><input type="text" class="todo-note mb-0" value="${not}"></div>
+                <div class="col-span-1"><button onclick="this.parentElement.parentElement.remove()" class="text-red-500 p-2 hover:bg-red-50 rounded no-print"><i class="fas fa-times"></i></button></div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addSalesEvalRow(tarih = '', durum = 'Olumlu', not = '') {
+            const container = document.getElementById('sales-eval-list');
+            const div = document.createElement('div');
+            div.className = 'grid grid-cols-12 gap-2 border-b pb-4 items-end';
+            div.innerHTML = `
+                <div class="col-span-3"><label class="text-xs">Tarih</label><input type="text" class="eval-date mb-0" value="${tarih}"></div>
+                <div class="col-span-2"><label class="text-xs">Durum</label><select class="eval-priority mb-0">
+                    <option ${durum==='Olumlu'?'selected':''}>Olumlu</option>
+                    <option ${durum==='Nötr'?'selected':''}>Nötr</option>
+                    <option ${durum==='Olumsuz'?'selected':''}>Olumsuz</option>
+                </select></div>
+                <div class="col-span-6"><label class="text-xs">Not</label><input type="text" class="eval-note mb-0" value="${not}"></div>
+                <div class="col-span-1"><button onclick="this.parentElement.parentElement.remove()" class="text-red-500 p-2 hover:bg-red-50 rounded no-print"><i class="fas fa-times"></i></button></div>
+            `;
+            container.appendChild(div);
+        }
+
+        // --- VERİ YÖNETİMİ FONKSİYONLARI ---
+
+        function getAllData() {
+            const data = {};
+            document.querySelectorAll('input, textarea, select').forEach(el => {
+                if(el.id && el.id !== 'importFile') data[el.id] = el.value;
+            });
+
+            data.todoList = Array.from(document.querySelectorAll('#todo-list > div')).map(row => ({
+                tarih: row.querySelector('.todo-date').value,
+                oncelik: row.querySelector('.todo-priority').value,
+                not: row.querySelector('.todo-note').value
+            }));
+
+            data.evalList = Array.from(document.querySelectorAll('#sales-eval-list > div')).map(row => ({
+                tarih: row.querySelector('.eval-date').value,
+                oncelik: row.querySelector('.eval-priority').value,
+                not: row.querySelector('.eval-note').value
+            }));
+            return data;
+        }
+
+        function saveAllData() {
+            const data = getAllData();
+            localStorage.setItem('crm_customer_data', JSON.stringify(data));
+            alert('Tüm veriler başarıyla kaydedildi!');
+        }
+
+        function exportJSON() {
+            const data = getAllData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `CRM_Yedek_${new Date().toLocaleDateString()}.json`;
+            a.click();
+        }
+
+        function importJSON(input) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = JSON.parse(e.target.result);
+                localStorage.setItem('crm_customer_data', JSON.stringify(data));
+                location.reload();
+            };
+            reader.readAsText(file);
+        }
+
+        function exportToExcel() {
+            const data = getAllData();
+            const mainInfo = [
+                ["CRM MÜŞTERİ ANALİZ RAPORU"],
+                ["Firma Adı", data.firma_adi || "-"],
+                ["Yetkili", data.yetkili_kisi || "-"],
+                ["Tarih/Yer", data.gorusme_tarih_yer || "-"],
+                [""],
+                ["YAPILACAKLAR LİSTESİ"],
+                ["Tarih", "Öncelik", "Görev"]
+            ];
+            
+            data.todoList.forEach(i => mainInfo.push([i.tarih, i.oncelik, i.not]));
+
+            const ws = XLSX.utils.aoa_to_sheet(mainInfo);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Müşteri Raporu");
+            XLSX.writeFile(wb, `${data.firma_adi || 'Musteri'}_Analiz.xlsx`);
+        }
+
+        function exportToPDF() {
+            const element = document.getElementById('pages-container');
+            const opt = {
+                margin: 10,
+                filename: 'CRM_Analiz_Raporu.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            
+            // Tüm sayfaları geçici olarak görünür yap
+            document.querySelectorAll('.page').forEach(p => p.style.display = 'block');
+            
+            html2pdf().set(opt).from(element).save().then(() => {
+                // Sayfaları eski haline getir
+                document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+                document.querySelector('.page.active').style.display = 'block';
+            });
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('crm_customer_data');
+            if(!saved) {
+                addTodoRow(); addSalesEvalRow(); return;
+            }
+            const data = JSON.parse(saved);
+            Object.keys(data).forEach(key => {
+                const el = document.getElementById(key);
+                if(el) el.value = data[key];
+            });
+            if(data.todoList) data.todoList.forEach(i => addTodoRow(i.tarih, i.oncelik, i.not));
+            if(data.evalList) data.evalList.forEach(i => addSalesEvalRow(i.tarih, i.oncelik, i.not));
+        }
+
+        function resetData() {
+            if(confirm('DİKKAT! Tüm veriler silinecek ve sistem sıfırlanacak. Devam edilsin mi?')) {
+                localStorage.removeItem('crm_customer_data');
+                location.reload();
+            }
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>
